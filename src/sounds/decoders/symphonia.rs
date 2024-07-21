@@ -10,6 +10,8 @@ use symphonia::core::meta::{Limit, MetadataOptions};
 use symphonia::core::probe::Hint;
 use symphonia::core::sample::Sample;
 
+use super::CODEC_REGISTRY;
+
 /// Decode formats using the Symphonia crate decoders.
 pub struct SymphoniaDecoder {
     sample_rate: u32,
@@ -57,7 +59,7 @@ impl SymphoniaDecoder {
         let track_id = track.id;
 
         let dec_opts: DecoderOptions = Default::default();
-        let decoder = symphonia::default::get_codecs().make(&track.codec_params, &dec_opts)?;
+        let decoder = CODEC_REGISTRY.make(&track.codec_params, &dec_opts)?;
 
         let mut decoder = SymphoniaDecoder {
             sample_rate: 1000,

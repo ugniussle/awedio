@@ -8,6 +8,8 @@ mod mp3;
 mod qoa;
 #[cfg(feature = "symphonia")]
 mod symphonia;
+#[cfg(feature = "symphonia")]
+mod opus;
 #[cfg(feature = "hound-wav")]
 mod wav;
 
@@ -17,7 +19,24 @@ pub use mp3::Mp3Decoder;
 pub use qoa::QoaDecoder;
 #[cfg(feature = "qoa")]
 pub use qoaudio::DecodeError as QoaDecodeError;
+
+use once_cell::sync::Lazy;
+
+/// Default Symphonia [`CodecRegistry`], including the (audiopus-backed) Opus codec.
+pub static CODEC_REGISTRY: Lazy<CodecRegistry> = Lazy::new(|| {
+    let mut registry = CodecRegistry::new();
+    register_enabled_codecs(&mut registry);
+    registry.register_all::<OpusDecoder>();
+    registry
+});
+
+use ::symphonia::default::register_enabled_codecs;
 #[cfg(feature = "symphonia")]
 pub use symphonia::SymphoniaDecoder;
+use symphonia_core::codecs::CodecRegistry;
 #[cfg(feature = "hound-wav")]
 pub use wav::WavDecoder;
+
+#[cfg(feature = "symphonia")]
+use self::opus::OpusDecoder;
+
