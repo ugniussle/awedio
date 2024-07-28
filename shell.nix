@@ -7,18 +7,15 @@ libPath = with pkgs; lib.makeLibraryPath [
 in
 pkgs.mkShell rec {
   buildInputs = with pkgs; [
-    clang
+      clang
 # Replace llvmPackages with llvmPackages_X, where X is the latest LLVM version (at the time of writing, 16)
       llvmPackages.bintools
       rustup
       pkg-config
-      ffmpeg_7
       alsa-lib
       cmake
       libopus
       pulseaudio
-      python312
-      python312Packages.pyaudio
   ];
   RUSTC_VERSION = overrides.toolchain.channel;
 # https://github.com/rust-lang/rust-bindgen#environment-variables
