@@ -262,6 +262,14 @@ pub trait Sound: Send {
         }
         Ok(true)
     }
+
+    /// seek to specified time in the audio stream
+    /// only implemented for [SymphoniaDecoder]
+    fn seek(&mut self, _seek_to: Duration) -> Result<Duration, symphonia_core::errors::Error> {
+        println!("default seek");
+        Ok(Duration::from_secs(0))
+    }
+
 }
 
 /// The result of [Sound::next_sample]

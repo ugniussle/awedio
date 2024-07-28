@@ -1,14 +1,20 @@
+use std::time::Duration;
+
 use crate::NextSample;
 use crate::Sound;
 use symphonia::core::audio::{AudioBuffer, AudioBufferRef, Channels, Signal};
 use symphonia::core::codecs::{Decoder, DecoderOptions, CODEC_TYPE_NULL};
 use symphonia::core::conv::FromSample;
 use symphonia::core::errors::Error;
-use symphonia::core::formats::{FormatOptions, FormatReader};
+use symphonia::core::formats::FormatOptions;
 use symphonia::core::io::{MediaSource, MediaSourceStream};
 use symphonia::core::meta::{Limit, MetadataOptions};
 use symphonia::core::probe::Hint;
 use symphonia::core::sample::Sample;
+use symphonia_core::formats::SeekMode;
+use symphonia_core::formats::SeekTo;
+use symphonia_core::probe::ProbeResult;
+use symphonia_core::units::Time;
 
 use super::CODEC_REGISTRY;
 
@@ -17,12 +23,14 @@ pub struct SymphoniaDecoder {
     sample_rate: u32,
 
     decoder: Box<dyn Decoder>,
-    format: Box<dyn FormatReader>,
 
     channels: Channels,
-    track_id: u32,
+    /// currently playing track id
+    pub track_id: u32,
     next_channel_idx: u16,
     next_sample_idx: usize,
+    /// probe result of currently playing stream
+    pub probed: ProbeResult,
 }
 
 impl SymphoniaDecoder {
@@ -46,10 +54,8 @@ impl SymphoniaDecoder {
         let fmt_opts: FormatOptions = Default::default();
         let probed = symphonia::default::get_probe().format(&hint, mss, &fmt_opts, &meta_opts)?;
 
-        let format = probed.format;
-
         // Find the first audio track with a known (decodable) codec.
-        let track = format
+        let track = probed.format
             .tracks()
             .iter()
             .find(|t| t.codec_params.codec != CODEC_TYPE_NULL)
@@ -64,11 +70,11 @@ impl SymphoniaDecoder {
         let mut decoder = SymphoniaDecoder {
             sample_rate: 1000,
             decoder,
-            format,
             channels: Channels::empty(),
             track_id,
             next_channel_idx: 0,
             next_sample_idx: 0,
+            probed,
         };
         // Ignore metadata changed since no one has seen the old values
         let _ = decoder.decode_next_packet();
@@ -113,16 +119,47 @@ impl Sound for SymphoniaDecoder {
     }
 
     fn on_start_of_batch(&mut self) {}
+
+    // Thanks to
+    // github.com/BonnyAD9/raplay/blob/master/src/source/symph.rs:153
+    fn seek(&mut self, seek_to: Duration) -> Result<Duration, symphonia_core::errors::Error> {
+        let par = self.decoder.codec_params();
+        let time = Time::new(
+            seek_to.as_secs(),
+            seek_to.as_secs_f64() - seek_to.as_secs_f64().trunc()
+        );
+
+        let seek_to = if let (Some(time_base), Some(max)) = 
+            (par.time_base, par.n_frames)
+        {
+            let ts = time_base.calc_timestamp(time);
+            SeekTo::TimeStamp {
+                ts: ts.min(max - 1),
+                track_id: self.track_id, 
+            }
+        } else {
+            SeekTo::Time {
+                time,
+                track_id: Some(self.track_id),
+            }
+        };
+
+        let pos = self.probed.format.seek(SeekMode::Coarse, seek_to)?;
+        let current_duration = (pos.actual_ts * 1000) / par.sample_rate.unwrap() as u64;
+
+        Ok(Duration::from_millis(current_duration))
+    }
+
 }
 
 impl SymphoniaDecoder {
     fn decode_next_packet(&mut self) -> Result<bool, Error> {
         loop {
-            let packet = self.format.next_packet()?;
+            let packet = self.probed.format.next_packet()?;
             // We don't currently use the metadata but pop it off so it does not take
             // memory.
-            while !self.format.metadata().is_latest() {
-                self.format.metadata().pop();
+            while !self.probed.format.metadata().is_latest() {
+                self.probed.format.metadata().pop();
             }
             if packet.track_id() != self.track_id {
                 continue;

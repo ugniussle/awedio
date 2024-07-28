@@ -15,6 +15,8 @@ use symphonia_core::{
     formats::Packet,
 };
 
+// https://github.com/ProjectAnni/anni/blob/master/anni-playback/src/decoder/opus.rs
+
 /// Opus decoder for symphonia, based on libopus v1.3 (via [`audiopus`]).
 pub struct OpusDecoder {
     inner: AudiopusDecoder,
@@ -162,44 +164,3 @@ impl Decoder for OpusDecoder {
     }
 }
 
-//impl Sound for OpusDecoder {
-//    fn channel_count(&self) -> u16 {
-//        let channels = self.params.channels.unwrap();
-//        channels.count() as u16
-//    }
-//
-//    fn sample_rate(&self) -> u32 {
-//        self.params.sample_rate.unwrap()
-//    }
-//
-//    fn next_sample(&mut self) -> Result<awedio::NextSample, awedio::Error> {
-//        if self.next_channel_idx >= self.channels.count().try_into().unwrap() {
-//            self.next_channel_idx = 0;
-//            self.next_sample_idx += 1;
-//        }
-//        let mut buf_ref = self.decoder.last_decoded();
-//        if self.next_sample_idx >= buf_ref.frames() {
-//            match self.decode_next_packet() {
-//                Ok(true) => return Ok(NextSample::MetadataChanged),
-//                Ok(false) => (),
-//                Err(Error::IoError(err))
-//                    if err.kind() == std::io::ErrorKind::UnexpectedEof
-//                        && err.to_string() == "end of stream" =>
-//                {
-//                    // According to Symphonia this is the only way to detect an end of stream
-//                    return Ok(NextSample::Finished);
-//                }
-//                // TODO: Handle errors better when awedio allows returning errors.
-//                Err(e) => return Err(e.into()),
-//            };
-//            buf_ref = self.decoder.last_decoded();
-//        }
-//        let sample = extract_sample_from_ref(&buf_ref, self.next_channel_idx, self.next_sample_idx);
-//        self.next_channel_idx += 1;
-//        Ok(NextSample::Sample(sample))
-//    }
-//
-//    fn on_start_of_batch(&mut self) {
-//        todo!()
-//    }
-//}
