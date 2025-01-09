@@ -270,6 +270,9 @@ pub trait Sound: Send {
         Ok(Duration::from_secs(0))
     }
 
+    fn set_sample_mult(&mut self, mult: f32) {
+        println!("Unimplemented set_sample_mult");
+    }
 }
 
 /// The result of [Sound::next_sample]

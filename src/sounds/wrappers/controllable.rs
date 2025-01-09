@@ -189,6 +189,6 @@ where
 {
     /// Set the volume of the controllable sound.
     pub fn set_volume(&mut self, volume: f32) {
-        self.send_command(Box::new(move |s: &mut S| s.set_volume(volume)));
+        self.send_command(Box::new(move |s: &mut S| s.set_volume(volume.sqrt())));
     }
 }

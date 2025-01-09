@@ -40,9 +40,9 @@ hound = { version = "3.5.0", optional = true }
 rmp3 = { version = "0.3.1", features = ["std"], optional = true }
 cpal = { version = "0.15", optional = true }
 qoaudio = { version = "0.7", optional = true }
-symphonia = { version = "0.5.3", optional = true, default-features = false }
+symphonia = { version = "0.5.4", optional = true, default-features = false, features=["all-formats", "opt-simd"] }
 log = "0.4.20"
-symphonia-core = { version = "0.5.2" }
+symphonia-core = { version = "0.5.4" }
 audiopus = { version = "0.3.0-rc.0" }
 once_cell = { version = "1" }
 

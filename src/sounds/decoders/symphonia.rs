@@ -31,6 +31,7 @@ pub struct SymphoniaDecoder {
     next_sample_idx: usize,
     /// probe result of currently playing stream
     pub probed: ProbeResult,
+    pub sample_mult: f32,
 }
 
 impl SymphoniaDecoder {
@@ -75,6 +76,7 @@ impl SymphoniaDecoder {
             next_channel_idx: 0,
             next_sample_idx: 0,
             probed,
+            sample_mult: 1.0,
         };
         // Ignore metadata changed since no one has seen the old values
         let _ = decoder.decode_next_packet();
@@ -115,6 +117,10 @@ impl Sound for SymphoniaDecoder {
         }
         let sample = extract_sample_from_ref(&buf_ref, self.next_channel_idx, self.next_sample_idx);
         self.next_channel_idx += 1;
+        let sample = f32::from(sample);
+        let sample = sample * self.sample_mult;
+        let sample = sample as i32;
+        let sample = i16::try_from(sample).unwrap();
         Ok(NextSample::Sample(sample))
     }
 
@@ -150,6 +156,10 @@ impl Sound for SymphoniaDecoder {
         Ok(Duration::from_millis(current_duration))
     }
 
+    fn set_sample_mult(&mut self, mult: f32) {
+        self.sample_mult = mult.clamp(0.0, 1.0);
+        println!("set gain to {}", self.sample_mult);
+    }
 }
 
 impl SymphoniaDecoder {
